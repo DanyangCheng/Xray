@@ -33,7 +33,7 @@ SHORT_ID=$(openssl rand -hex 8)
 
 TARGET=${TARGET:-www.cloudflare.com:443}
 
-SERVER_NAME=${SERVER_NAME:-www.cloudflare.com:443}
+SERVER_NAME=${SERVER_NAME:-www.cloudflare.com}
 
 export UUID
 export PRIVATE_KEY
