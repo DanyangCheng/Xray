@@ -1,10 +1,9 @@
 services:
 
   xray:
-    image: xray-reality
 
     container_name: xray
-
+    build: .
     restart: always
 
     ports:
