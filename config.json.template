@@ -25,7 +25,7 @@
         "realitySettings": {
           "show": false,
           
-          "dest": "${DEST}",
+          "target": "${TARGET}",
           "xver": 0,
           "serverNames": [
             "${SERVER_NAME}"

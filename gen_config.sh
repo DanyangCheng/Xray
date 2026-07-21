@@ -31,7 +31,7 @@ SHORT_ID=$(openssl rand -hex 8)
 
 
 
-DEST=${DEST:-www.cloudflare.com:443}
+TARGET=${TARGET:-www.cloudflare.com:443}
 
 SERVER_NAME=${SERVER_NAME:-www.cloudflare.com:443}
 
@@ -39,11 +39,11 @@ export UUID
 export PRIVATE_KEY
 export PUBLIC_KEY
 export SHORT_ID
-export DEST
+export TARGET
 export SERVER_NAME
 
 envsubst \
-'${UUID} ${PRIVATE_KEY} ${PUBLIC_KEY} ${SHORT_ID} ${DEST} ${SERVER_NAME}' \
+'${UUID} ${PRIVATE_KEY} ${PUBLIC_KEY} ${SHORT_ID} ${TARGET} ${SERVER_NAME}' \
 < /config.template \
 > $CONFIG
 
