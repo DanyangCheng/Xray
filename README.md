@@ -24,12 +24,10 @@ The first start creates `config/config.json` and `config/url.txt`. Both files ar
 created with mode `0600`. The private key is never printed to the build or runtime
 logs. Import `config/url.txt` into a compatible client.
 
+This image intentionally does not configure a VLESS `fallbacks` entry. A VLESS
+fallback needs a real local backend service; none is included here. REALITY
+already forwards unauthenticated connections to its configured `TARGET`.
+
 To deliberately rotate all credentials, stop the service, securely back up and
 remove the `config` directory, then start it again. Removing this directory makes
 all previously issued client URIs invalid.
-
-## Existing installations
-
-This version refuses to start if an existing generated configuration still uses
-`www.cloudflare.com:443`. Choose a suitable target, remove the old generated
-configuration, and start the service to generate new credentials.

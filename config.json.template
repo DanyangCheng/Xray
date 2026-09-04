@@ -35,11 +35,6 @@
 
           "shortIds": [
             "${SHORT_ID}"
-          ],
-          "fallbacks": [
-          {
-            "dest": 8080
-          }
           ]
         }
       }
