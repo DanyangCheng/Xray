@@ -1,13 +1,13 @@
 services:
-
   xray:
-
     container_name: xray
     build: .
     restart: always
-
+    environment:
+      TARGET: "${TARGET:-}"
+      SERVER_NAME: "${SERVER_NAME:-}"
+      SERVER_ADDRESS: "${SERVER_ADDRESS:-}"
     ports:
       - "443:443"
-
     volumes:
       - ./config:/etc/xray/

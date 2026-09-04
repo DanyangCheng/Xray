@@ -1,79 +1,49 @@
 #!/bin/sh
 
-set -e
+set -eu
+umask 077
 
+CONFIG=${CONFIG:-/etc/xray/config.json}
+CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-/config.json.template}
+URL_FILE=${URL_FILE:-/etc/xray/url.txt}
 
-CONFIG=/config.json
+: "${TARGET:?TARGET is required, for example example.com:443}"
+: "${SERVER_NAME:?SERVER_NAME is required, for example example.com}"
+: "${SERVER_ADDRESS:?SERVER_ADDRESS is required, for example 203.0.113.10}"
 
+if [ "$TARGET" = "www.cloudflare.com:443" ]; then
+    echo "[!] TARGET=www.cloudflare.com:443 is unsafe for REALITY and is not allowed." >&2
+    exit 1
+fi
 
-echo "[+] Generate UUID"
-
-UUID=$(cat /proc/sys/kernel/random/uuid)
-
-
-echo "[+] Generate REALITY key"
-
+UUID=$(xray uuid)
 KEY_OUTPUT=$(xray x25519)
 
+PRIVATE_KEY=$(printf '%s\n' "$KEY_OUTPUT" | awk -F ': *' \
+    '/^PrivateKey:|^Private key:/ { print $2; exit }')
+PUBLIC_KEY=$(printf '%s\n' "$KEY_OUTPUT" | awk -F ': *' \
+    '/^PublicKey:|^Public key:|^Password:|^Password \(PublicKey\):/ { print $2; exit }')
+SHORT_ID=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
 
-PRIVATE_KEY=$(echo "$KEY_OUTPUT" \
-  | grep -E '^Private(Key)?' \
-  | sed -E 's/^[^:]+:[[:space:]]*//')
+if [ -z "$UUID" ] || [ -z "$PRIVATE_KEY" ] || [ -z "$PUBLIC_KEY" ] || [ -z "$SHORT_ID" ]; then
+    echo "[!] Failed to generate Xray credentials." >&2
+    exit 1
+fi
 
+CONFIG_TMP=${CONFIG}.tmp
+sed \
+    -e "s|\${UUID}|${UUID}|g" \
+    -e "s|\${PRIVATE_KEY}|${PRIVATE_KEY}|g" \
+    -e "s|\${SHORT_ID}|${SHORT_ID}|g" \
+    -e "s|\${TARGET}|${TARGET}|g" \
+    -e "s|\${SERVER_NAME}|${SERVER_NAME}|g" \
+    "$CONFIG_TEMPLATE" > "$CONFIG_TMP"
+mv "$CONFIG_TMP" "$CONFIG"
 
-PUBLIC_KEY=$(echo "$KEY_OUTPUT" \
-  | grep -E 'PublicKey|\(PublicKey\)' \
-  | sed -E 's/^[^:]+:[[:space:]]*//')
+printf '%s\n' \
+    "vless://${UUID}@${SERVER_ADDRESS}:443?type=tcp&security=reality&pbk=${PUBLIC_KEY}&fp=chrome&sni=${SERVER_NAME}&sid=${SHORT_ID}&flow=xtls-rprx-vision" \
+    > "$URL_FILE"
 
-echo "[+] Generate short id"
-
-SHORT_ID=$(openssl rand -hex 8)
-
-
-
-TARGET=${TARGET:-www.cloudflare.com:443}
-
-SERVER_NAME=${SERVER_NAME:-www.cloudflare.com}
-
-export UUID
-export PRIVATE_KEY
-export PUBLIC_KEY
-export SHORT_ID
-export TARGET
-export SERVER_NAME
-
-envsubst \
-'${UUID} ${PRIVATE_KEY} ${PUBLIC_KEY} ${SHORT_ID} ${TARGET} ${SERVER_NAME}' \
-< /config.template \
-> $CONFIG
-
-
-
-echo ""
-echo "========== SERVER INFO =========="
-echo UUID:
-echo $UUID
-
-echo ""
-echo Private Key:
-echo $PRIVATE_KEY
-
-echo ""
-echo Public Key:
-echo $PUBLIC_KEY
-
-echo ""
-echo Short ID:
-echo $SHORT_ID
-
-
-echo ""
-echo "========== CLIENT URI =========="
-
-
-echo \
-"vless://${UUID}@YOUR_SERVER_IP:443?type=tcp&security=reality&pbk=${PUBLIC_KEY}&fp=chrome&sni=${SERVER_NAME}&sid=${SHORT_ID}&flow=xtls-rprx-vision" > /url.txt
-
-
-
-# exec xray run -config $CONFIG
+chmod 0600 "$CONFIG" "$URL_FILE"
+echo "[+] Generated Xray configuration and client URI in /etc/xray."
+unset KEY_OUTPUT PRIVATE_KEY
